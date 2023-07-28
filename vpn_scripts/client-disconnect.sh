@@ -5,3 +5,6 @@ set -x
 env
 
 echo "Client disconnected"
+echo "Name: ${common_name}"
+echo "Internal ip: ${ifconfig_pool_remote_ip}"
+echo "Public ip: ${trusted_ip}"
