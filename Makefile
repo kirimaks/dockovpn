@@ -89,4 +89,4 @@ run:
 	-p 1194:1194/udp -p 80:8080/tcp \
 	-e HOST_ADDR=localhost \
 	--rm \
-	${DOCKER_REPO}
+	${DOCKER_REPO}:local
