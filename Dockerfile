@@ -18,6 +18,7 @@ WORKDIR ${APP_INSTALL_PATH}
 COPY scripts .
 COPY config ./config
 COPY VERSION ./config
+COPY vpn_scripts /etc/openvpn/scripts
 
 RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa && \
