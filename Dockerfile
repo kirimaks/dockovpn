@@ -20,7 +20,7 @@ COPY config ./config
 COPY VERSION ./config
 COPY vpn_scripts /etc/openvpn/scripts
 
-RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init && \
+RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init curl && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa && \
     mkdir -p ${APP_PERSIST_DIR} && \
     cd ${APP_PERSIST_DIR} && \
