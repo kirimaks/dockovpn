@@ -105,6 +105,8 @@ cd "$APP_INSTALL_PATH"
 # Print app version
 $APP_INSTALL_PATH/version.sh
 
+env | grep -i vpn > /tmp/vpn-vars
+
 # Need to feed key password
 openvpn --config /etc/openvpn/server.conf &
 
