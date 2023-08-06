@@ -1,4 +1,4 @@
-FROM alpine:3.14.1
+FROM node:17.9.1-alpine3.14
 
 LABEL maintainer="Alexander Litvinenko <array.shift@yahoo.com>"
 
@@ -12,6 +12,8 @@ ENV NET_ADAPTER eth0
 ENV HOST_ADDR localhost
 ENV HOST_TUN_PORT 1194
 ENV HOST_CONF_PORT 80
+ENV NODE_PATH /usr/lib/node_modules
+ENV VPN_SCRIPTS_ENV_FILE /tmp/vpn-scripts-env
 
 WORKDIR ${APP_INSTALL_PATH}
 
@@ -19,6 +21,9 @@ COPY scripts .
 COPY config ./config
 COPY VERSION ./config
 COPY vpn_scripts /etc/openvpn/scripts
+
+RUN npm config set prefix /usr && \
+    npm -g add mongodb
 
 RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init curl jq && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa && \
