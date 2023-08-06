@@ -88,5 +88,9 @@ run:
 	-v openvpn_conf:/opt/Dockovpn_data \
 	-p 1194:1194/tcp -p 80:8080/tcp \
 	-e HOST_ADDR=localhost \
+    -e MONGOUSER=${MONGOUSER} \
+    -e MONGOPASS=${MONGOPASS} \
+    -e MONGOHOST=${MONGOHOST} \
+    -e MONGOPORT=${MONGOPORT} \
 	--rm \
 	${DOCKER_REPO}:local
