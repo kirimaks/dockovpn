@@ -35,15 +35,13 @@ async function searchProxy(proxyName) {
 }
 
 (async function processProxy() {
-    if (await searchProxy('proxy10')) {
-        console.log('Start proxy');
+    const clientName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+
+    if (await searchProxy(clientName)) {
+        console.log(`Start proxy container for: ${clientName}`);
+
     } else {
-        console.log('Not start');
+        console.log(`Skip proxy container for: ${clientName}`);
     }
 
-    if (await searchProxy('proxy1')) {
-        console.log('Start proxy for proxy1');
-    } else {
-        console.log('Not start');
-    }
 })();
