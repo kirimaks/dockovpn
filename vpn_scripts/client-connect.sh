@@ -27,9 +27,6 @@ export CACERT=${SERVICEACCOUNT}/ca.crt
 
 export POD_NAME=$(echo "tinyproxy-${VPN_CONFIG_NAME}-${VPN_CLIENT_IP}-" | awk '{print tolower($0)}')
 
-echo "Client connected"
-echo "Name: ${common_name}"
-echo "Internal ip: ${ifconfig_pool_remote_ip}"
-echo "Public ip: ${trusted_ip}"
-
 node /etc/openvpn/scripts/start-proxy.js
+
+echo "<< Client connected: ${common_name}/${ifconfig_pool_remote_ip} >>"
