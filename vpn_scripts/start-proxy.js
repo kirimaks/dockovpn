@@ -3,6 +3,7 @@
 const { MongoClient } = require('mongodb');
 const axios = require('axios');
 const https = require('https');
+const Redis = require('ioredis');
 
 const PROXY_DB = 'proxyPool';
 const PROXY_COLLECTION = 'proxy';
@@ -138,6 +139,41 @@ async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, v
     console.log(resp);
 }
 
+function getRedisClient(host, port, password, db) {
+    const redis = new Redis({ host, port, password, db });
+
+    redis.on('connect', () => console.log('Redis connected'));
+    redis.on('ready', () => console.log('Readis ready'));
+    redis.on('error', (error) => console.log(`Redis error: ${error}`));
+    redis.on('close', () => console.log('Redis closed'));
+
+    return redis;
+}
+
+async function createRedisRecord() {
+    const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
+    const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
+    const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
+    const redisDb = process.env.REDIS_DB || envError('REDIS_DB not defined');
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
+
+    const redis = getRedisClient(redisHost, redisPort, redisPass, redisDb);
+
+    const nodeDetails = {
+        name: vpnConfigName,
+        localIp: vpnClientIp,
+        publicIp: '0.0.0.0',
+        status: 'online',
+        httpSessions: 0,
+        uptime: 'null',
+        httpInternalPort: 0
+    };
+
+    await redis.hset(`node-proxy-${vpnConfigName}`, nodeDetails);
+    await redis.disconnect();
+}
+
 
 (async function processProxy() {
     const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
@@ -151,6 +187,7 @@ async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, v
     if (await searchProxy(vpnConfigName, namespace, apiserver)) {
         console.log(`Start proxy container for: ${vpnConfigName}`);
         await startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken);
+        await createRedisRecord();
 
     } else {
         console.log(`Skip proxy container for: ${vpnConfigName}`);
