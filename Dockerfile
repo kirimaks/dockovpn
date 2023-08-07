@@ -23,7 +23,7 @@ COPY VERSION ./config
 COPY vpn_scripts /etc/openvpn/scripts
 
 RUN npm config set prefix /usr && \
-    npm -g add mongodb
+    npm -g add mongodb axios
 
 RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init curl jq && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa && \
