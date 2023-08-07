@@ -25,7 +25,7 @@ export TOKEN=$(cat ${SERVICEACCOUNT}/token)
 # Reference the internal certificate authority (CA)
 export CACERT=${SERVICEACCOUNT}/ca.crt
 
-export POD_NAME="tinyproxy-${VPN_CONFIG_NAME}-${VPN_CLIENT_IP}-"
+export POD_NAME=$(echo "tinyproxy-${VPN_CONFIG_NAME}-${VPN_CLIENT_IP}-" | awk '{print tolower($0)}')
 
 echo "Client connected"
 echo "Name: ${common_name}"
