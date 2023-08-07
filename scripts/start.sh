@@ -107,9 +107,7 @@ cd "$APP_INSTALL_PATH"
 # Print app version
 $APP_INSTALL_PATH/version.sh
 
-env | grep -i vpn > $VPN_SCRIPTS_ENV_FILE
-env | grep -i node >> $VPN_SCRIPTS_ENV_FILE
-env | grep -i mongo >> $VPN_SCRIPTS_ENV_FILE
+env > $VPN_SCRIPTS_ENV_FILE
 
 # Need to feed key password
 openvpn --config /etc/openvpn/server.conf &
