@@ -1,6 +1,8 @@
 "use strict"
 
 const { MongoClient } = require('mongodb');
+const axios = require('axios');
+const https = require('https');
 
 const PROXY_DB = 'proxyPool';
 const PROXY_COLLECTION = 'proxy';
@@ -22,6 +24,7 @@ async function searchProxy(proxyName) {
     const connectionString = getConnectionString();
 
     console.log(`Connection string: ${connectionString}`);
+    console.log(`Proxy name: ${proxyName}`);
 
     const connection = new MongoClient(connectionString);
     await connection.connect();
@@ -34,14 +37,123 @@ async function searchProxy(proxyName) {
     return resp;
 }
 
-(async function processProxy() {
-    const clientName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+function getPodData(podName, podIp, vpnClientIp) {
 
-    if (await searchProxy(clientName)) {
-        console.log(`Start proxy container for: ${clientName}`);
+    return {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+            generateName: podName,
+            labels: {
+                app: 'proxy',
+            },
+        },
+        spec: {
+            containers: [
+                {
+                    name: 'vpnclient',
+                    image: 'skamirik/openvpn-client:latest',
+                    securityContext: {
+                        capabilities: {
+                            add: [ 'NET_ADMIN' ],
+                        }
+                    },
+                    volumeMounts: [
+                        {
+                            name: 'tun-device',
+                            mountPath: '/dev/net/tun',
+                            readOnly: true
+                        },
+                        {
+                            name: 'vpn-client-config',
+                            mountPath: '/etc/openvpn/',
+                        }
+                    ],
+                    env: [
+                        {
+                            name: 'VPN_SERVER_HOST',
+                            value: podIp,
+                        },
+                        {
+                            name: 'VPN_SERVER_PORT',
+                            value: '1194',
+                        }
+                    ]
+                },
+                {
+                    name: 'tinyproxy',
+                    image: 'skamirik/tinyproxy:latest',
+
+                    ports: [
+                        {
+                            name: 'proxy',
+                            containerPort: 8080,
+                        }
+                    ],
+                    env: [
+                        {
+                            name: 'LISTEN_PORT',
+                            value: '8080'
+                        },
+                        {
+                            name: 'UPSTREAM_HOST',
+                            value: vpnClientIp,
+                        },
+                        {
+                            name: 'UPSTREAM_PORT',
+                            value: '1080'
+                        }
+                    ]
+                },
+            ],
+            volumes: [
+                {
+                    name: 'tun-device',
+                    hostPath: {
+                        path: '/dev/net/tun',
+                    }
+                },
+                {
+                    name: 'vpn-client-config',
+                    configMap: {
+                        name: 'vpn-client',
+                    }
+                }
+            ]
+        }
+    }
+}
+
+async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken) {
+    const options = {
+        url: `${apiserver}/api/v1/namespaces/${namespace}/pods`,
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiToken}` },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        data: getPodData(podName, podIp, vpnClientIp),
+    };
+
+    const resp = await axios(options);
+
+    console.log(resp);
+}
+
+
+(async function processProxy() {
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+    const namespace = process.env.NAMESPACE || envError('NAMESPACE not defined');
+    const apiserver = process.env.APISERVER || envError('APISERVER not defined');
+    const podName = process.env.POD_NAME || envError('POD_NAME not defined');
+    const podIp = process.env.POD_IP || envError('POD_IP not defined');
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
+    const apiToken = process.env.TOKEN || envError('TOKEN not defined');
+
+    if (await searchProxy(vpnConfigName, namespace, apiserver)) {
+        console.log(`Start proxy container for: ${vpnConfigName}`);
+        await startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken);
 
     } else {
-        console.log(`Skip proxy container for: ${clientName}`);
+        console.log(`Skip proxy container for: ${vpnConfigName}`);
     }
 
 })();
