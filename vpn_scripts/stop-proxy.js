@@ -34,27 +34,31 @@ async function stopProxy(apiserver, namespace, apiToken, podMatch) {
     }
 }
 
-async function updateRedisRecord() {
+async function updateRedisRecord(vpnConfigName, vpnClientIp) {
     const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
     const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
     const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
     const redisDb = process.env.REDIS_DB || envError('REDIS_DB not defined');
-    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
-    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
 
     const redis = redisTools.getRedisClient(redisHost, redisPort, redisPass, redisDb);
+    const proxyNodeKey = redisTools.getProxyNodeKey(vpnConfigName);
 
-    const nodeDetails = {
-        name: vpnConfigName,
-        localIp: vpnClientIp,
-        publicIp: '',
-        status: 'offline',
-        httpSessions: 0,
-        uptime: '',
-        httpInternalPort: 0
-    };
+    const savedIp = await redis.hget(proxyNodeKey, 'localIp');
 
-    await redis.hset(`node-proxy-${vpnConfigName}`, nodeDetails);
+    if (savedIp === vpnClientIp) {
+        const nodeDetails = {
+            name: vpnConfigName,
+            localIp: vpnClientIp,
+            publicIp: '',
+            status: 'offline',
+            httpSessions: 0,
+            uptime: '',
+            httpInternalPort: 0
+        };
+
+        await redis.hset(proxyNodeKey, nodeDetails);
+    }
+
     await redis.disconnect();
 }
 
@@ -64,6 +68,9 @@ async function updateRedisRecord() {
     const apiToken = process.env.TOKEN || envError('TOKEN not defined');
     const podMatch = process.env.POD_MATCH || envError('POD_MATCH not defined');
 
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+
     try {
         await stopProxy(apiserver, namespace, apiToken, podMatch);
 
@@ -72,7 +79,7 @@ async function updateRedisRecord() {
     }
 
     try {
-        await updateRedisRecord();
+        await updateRedisRecord(vpnConfigName, vpnClientIp);
 
     } catch(error) {
         console.error(`Cannot update redis record: ${error}`);

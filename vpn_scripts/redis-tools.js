@@ -14,4 +14,10 @@ function getRedisClient(host, port, password, db) {
     return redis;
 }
 
+function getProxyNodeKey(vpnConfigName) {
+    return `node-proxy-${vpnConfigName}`;
+}
+
+
 exports.getRedisClient = getRedisClient;
+exports.getProxyNodeKey = getProxyNodeKey;
