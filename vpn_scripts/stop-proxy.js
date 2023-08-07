@@ -34,6 +34,30 @@ async function stopProxy(apiserver, namespace, apiToken, podMatch) {
     }
 }
 
+async function updateRedisRecord() {
+    const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
+    const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
+    const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
+    const redisDb = process.env.REDIS_DB || envError('REDIS_DB not defined');
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
+
+    const redis = redisTools.getRedisClient(redisHost, redisPort, redisPass, redisDb);
+
+    const nodeDetails = {
+        name: vpnConfigName,
+        localIp: vpnClientIp,
+        publicIp: '',
+        status: 'offline',
+        httpSessions: 0,
+        uptime: '',
+        httpInternalPort: 0
+    };
+
+    await redis.hset(`node-proxy-${vpnConfigName}`, nodeDetails);
+    await redis.disconnect();
+}
+
 (async function cleanProxy() {
     const namespace = process.env.NAMESPACE || envError('NAMESPACE not defined');
     const apiserver = process.env.APISERVER || envError('APISERVER not defined');
@@ -45,6 +69,13 @@ async function stopProxy(apiserver, namespace, apiToken, podMatch) {
 
     } catch(error) {
         console.error(`Cannot stop proxy: ${error}`);
+    }
+
+    try {
+        await updateRedisRecord();
+
+    } catch(error) {
+        console.error(`Cannot update redis record: ${error}`);
     }
 
 })();
