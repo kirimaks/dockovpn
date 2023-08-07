@@ -3,7 +3,8 @@
 const { MongoClient } = require('mongodb');
 const axios = require('axios');
 const https = require('https');
-const Redis = require('ioredis');
+
+const redisTools = require('./redis-tools');
 
 const PROXY_DB = 'proxyPool';
 const PROXY_COLLECTION = 'proxy';
@@ -136,18 +137,7 @@ async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, v
 
     const resp = await axios(options);
 
-    console.log(resp);
-}
-
-function getRedisClient(host, port, password, db) {
-    const redis = new Redis({ host, port, password, db });
-
-    redis.on('connect', () => console.log('Redis connected'));
-    redis.on('ready', () => console.log('Readis ready'));
-    redis.on('error', (error) => console.log(`Redis error: ${error}`));
-    redis.on('close', () => console.log('Redis closed'));
-
-    return redis;
+    console.log(resp.data);
 }
 
 async function createRedisRecord() {
@@ -158,7 +148,7 @@ async function createRedisRecord() {
     const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
     const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
 
-    const redis = getRedisClient(redisHost, redisPort, redisPass, redisDb);
+    const redis = redisTools.getRedisClient(redisHost, redisPort, redisPass, redisDb);
 
     const nodeDetails = {
         name: vpnConfigName,
@@ -186,8 +176,13 @@ async function createRedisRecord() {
 
     if (await searchProxy(vpnConfigName, namespace, apiserver)) {
         console.log(`Start proxy container for: ${vpnConfigName}`);
-        await startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken);
-        await createRedisRecord();
+        try {
+            await startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken);
+            await createRedisRecord();
+
+        } catch(error) {
+            console.error(`Cannot start proxy: ${error}`);
+        }
 
     } else {
         console.log(`Skip proxy container for: ${vpnConfigName}`);

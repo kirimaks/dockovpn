@@ -4,7 +4,7 @@ set -x
 
 export $(grep -v '^#' /tmp/vpn-scripts-env | xargs)
 
-env
+# env
 
 export VPN_CLIENT_IP=$ifconfig_pool_remote_ip
 export VPN_CONFIG_NAME=$common_name

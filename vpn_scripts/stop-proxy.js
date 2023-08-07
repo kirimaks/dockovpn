@@ -3,6 +3,8 @@
 const axios = require('axios');
 const https = require('https');
 
+const redisTools = require('./redis-tools');
+
 
 async function stopProxy(apiserver, namespace, apiToken, podMatch) {
     const existingPodsOptions = {
