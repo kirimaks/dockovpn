@@ -140,7 +140,7 @@ async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, v
     console.log(resp.data);
 }
 
-async function createRedisRecord(vpnConfigName, vpnClientIp) {
+async function createRedisRecord(vpnConfigName, vpnClientIp, podIp) {
     const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
     const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
     const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
@@ -152,11 +152,10 @@ async function createRedisRecord(vpnConfigName, vpnClientIp) {
     const nodeDetails = {
         name: vpnConfigName,
         localIp: vpnClientIp,
-        publicIp: '0.0.0.0',
-        status: 'online',
+        status: 'connecting',
         httpSessions: 0,
+        publicIp: '',
         uptime: '',
-        httpInternalPort: 0
     };
 
     await redis.hset(proxyNodeKey, nodeDetails);
