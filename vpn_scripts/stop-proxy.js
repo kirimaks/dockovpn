@@ -4,6 +4,7 @@ const axios = require('axios');
 const https = require('https');
 
 const redisTools = require('./redis-tools');
+const envTools = require('./env-tools');
 
 
 async function stopProxy(apiserver, namespace, apiToken, podMatch) {
@@ -35,10 +36,10 @@ async function stopProxy(apiserver, namespace, apiToken, podMatch) {
 }
 
 async function updateRedisRecord(vpnConfigName, vpnClientIp) {
-    const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
-    const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
-    const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
-    const redisDb = process.env.REDIS_DB || envError('REDIS_DB not defined');
+    const redisHost = process.env.REDIS_HOST || envTools.envError('REDIS_HOST not defined');
+    const redisPort = process.env.REDIS_PORT || envTools.envError('REDIS_PORT not defined');
+    const redisPass = process.env.REDIS_PASS || envTools.envError('REDIS_PASS not defined');
+    const redisDb = process.env.REDIS_DB || envTools.envError('REDIS_DB not defined');
 
     const redis = redisTools.getRedisClient(redisHost, redisPort, redisPass, redisDb);
     const proxyNodeKey = redisTools.getProxyNodeKey(vpnConfigName);
@@ -63,13 +64,13 @@ async function updateRedisRecord(vpnConfigName, vpnClientIp) {
 }
 
 (async function cleanProxy() {
-    const namespace = process.env.NAMESPACE || envError('NAMESPACE not defined');
-    const apiserver = process.env.APISERVER || envError('APISERVER not defined');
-    const apiToken = process.env.TOKEN || envError('TOKEN not defined');
-    const podMatch = process.env.POD_MATCH || envError('POD_MATCH not defined');
+    const namespace = process.env.NAMESPACE || envTools.envError('NAMESPACE not defined');
+    const apiserver = process.env.APISERVER || envTools.envError('APISERVER not defined');
+    const apiToken = process.env.TOKEN || envTools.envError('TOKEN not defined');
+    const podMatch = process.env.POD_MATCH || envTools.envError('POD_MATCH not defined');
 
-    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
-    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envTools.envError('VPN_CLIENT_IP not defined');
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envTools.envError('VPN_CONFIG_NAME not defined');
 
     try {
         await stopProxy(apiserver, namespace, apiToken, podMatch);

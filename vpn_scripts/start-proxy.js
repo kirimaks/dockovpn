@@ -5,25 +5,23 @@ const axios = require('axios');
 const https = require('https');
 
 const redisTools = require('./redis-tools');
+const envTools = require('./env-tools');
 
 const PROXY_DB = 'proxyPool';
 const PROXY_COLLECTION = 'proxy';
 
-function envError(errorText) {
-    throw new Error(errorText);
-}
 
-function getConnectionString() {
-    const mongoUser = process.env.MONGOUSER || envError('MONGOUSER not defined');
-    const mongoPass = process.env.MONGOPASS || envError('MONGOPASS not defined');
-    const mongoHost = process.env.MONGOHOST || envError('MONGOHOST not defined');
-    const mongoPort = process.env.MONGOPORT || envError('MONGOPORT not defindd');
+function getMongoConnectionString() {
+    const mongoUser = process.env.MONGOUSER || envTools.envError('MONGOUSER not defined');
+    const mongoPass = process.env.MONGOPASS || envTools.envError('MONGOPASS not defined');
+    const mongoHost = process.env.MONGOHOST || envTools.envError('MONGOHOST not defined');
+    const mongoPort = process.env.MONGOPORT || envTools.envError('MONGOPORT not defindd');
 
     return `mongodb://${mongoUser}:${mongoPass}@${mongoHost}:${mongoPort}/?directConnection=true&authMechanism=DEFAULT`;
 }
 
 async function searchProxy(proxyName) {
-    const connectionString = getConnectionString();
+    const connectionString = getMongoConnectionString();
 
     console.log(`Connection string: ${connectionString}`);
     console.log(`Proxy name: ${proxyName}`);
@@ -39,8 +37,7 @@ async function searchProxy(proxyName) {
     return resp;
 }
 
-function getPodData(podName, podIp, vpnClientIp) {
-
+function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
     return {
         apiVersion: 'v1',
         kind: 'Pod',
@@ -55,6 +52,7 @@ function getPodData(podName, podIp, vpnClientIp) {
                 {
                     name: 'vpnclient',
                     image: 'skamirik/openvpn-client:latest',
+                    imagePullPolicy: 'Always',
                     securityContext: {
                         capabilities: {
                             add: [ 'NET_ADMIN' ],
@@ -74,17 +72,22 @@ function getPodData(podName, podIp, vpnClientIp) {
                     env: [
                         {
                             name: 'VPN_SERVER_HOST',
-                            value: podIp,
+                            value: vpnPodIp,
                         },
                         {
                             name: 'VPN_SERVER_PORT',
                             value: '1194',
-                        }
+                        },
+                        {
+                            name: 'VPN_CONFIG_NAME',
+                            value: vpnConfigName,
+                        },
                     ]
                 },
                 {
                     name: 'tinyproxy',
                     image: 'skamirik/tinyproxy:latest',
+                    imagePullPolicy: 'Always',
 
                     ports: [
                         {
@@ -127,12 +130,13 @@ function getPodData(podName, podIp, vpnClientIp) {
 }
 
 async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken) {
+
     const options = {
         url: `${apiserver}/api/v1/namespaces/${namespace}/pods`,
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiToken}` },
         httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-        data: getPodData(podName, podIp, vpnClientIp),
+        data: getPodData(podName, podIp, vpnClientIp, vpnConfigName),
     };
 
     const resp = await axios(options);
@@ -140,12 +144,7 @@ async function startProxy(vpnConfigName, namespace, apiserver, podName, podIp, v
     console.log(resp.data);
 }
 
-async function createRedisRecord(vpnConfigName, vpnClientIp, podIp) {
-    const redisHost = process.env.REDIS_HOST || envError('REDIS_HOST not defined');
-    const redisPort = process.env.REDIS_PORT || envError('REDIS_PORT not defined');
-    const redisPass = process.env.REDIS_PASS || envError('REDIS_PASS not defined');
-    const redisDb = process.env.REDIS_DB || envError('REDIS_DB not defined');
-
+async function createRedisRecord(redisHost, redisPort, redisPass, redisDb, vpnConfigName, vpnClientIp) {
     const redis = redisTools.getRedisClient(redisHost, redisPort, redisPass, redisDb);
     const proxyNodeKey = redisTools.getProxyNodeKey(vpnConfigName);
 
@@ -153,8 +152,7 @@ async function createRedisRecord(vpnConfigName, vpnClientIp, podIp) {
         name: vpnConfigName,
         localIp: vpnClientIp,
         status: 'connecting',
-        httpSessions: 0,
-        publicIp: '',
+        httpSessions: 0, publicIp: '',
         uptime: '',
     };
 
@@ -164,20 +162,25 @@ async function createRedisRecord(vpnConfigName, vpnClientIp, podIp) {
 
 
 (async function processProxy() {
-    const namespace = process.env.NAMESPACE || envError('NAMESPACE not defined');
-    const apiserver = process.env.APISERVER || envError('APISERVER not defined');
-    const podName = process.env.POD_NAME || envError('POD_NAME not defined');
-    const podIp = process.env.POD_IP || envError('POD_IP not defined');
-    const apiToken = process.env.TOKEN || envError('TOKEN not defined');
+    const namespace = process.env.NAMESPACE || envTools.envError('NAMESPACE not defined');
+    const apiserver = process.env.APISERVER || envTools.envError('APISERVER not defined');
+    const podName = process.env.POD_NAME || envTools.envError('POD_NAME not defined');
+    const vpnPodIp = process.env.POD_IP || envTools.envError('POD_IP not defined');
+    const apiToken = process.env.TOKEN || envTools.envError('TOKEN not defined');
 
-    const vpnClientIp = process.env.VPN_CLIENT_IP || envError('VPN_CLIENT_IP not defined');
-    const vpnConfigName = process.env.VPN_CONFIG_NAME || envError('VPN_CONFIG_NAME not defined');
+    const vpnClientIp = process.env.VPN_CLIENT_IP || envTools.envError('VPN_CLIENT_IP not defined');
+    const vpnConfigName = process.env.VPN_CONFIG_NAME || envTools.envError('VPN_CONFIG_NAME not defined');
+
+    const redisHost = process.env.REDIS_HOST || envTools.envError('REDIS_HOST not defined');
+    const redisPort = process.env.REDIS_PORT || envTools.envError('REDIS_PORT not defined');
+    const redisPass = process.env.REDIS_PASS || envTools.envError('REDIS_PASS not defined');
+    const redisDb = process.env.REDIS_DB || envTools.envError('REDIS_DB not defined');
 
     if (await searchProxy(vpnConfigName, namespace, apiserver)) {
         console.log(`Start proxy container for: ${vpnConfigName}`);
         try {
-            await startProxy(vpnConfigName, namespace, apiserver, podName, podIp, vpnClientIp, apiToken);
-            await createRedisRecord(vpnConfigName, vpnClientIp);
+            await startProxy(vpnConfigName, namespace, apiserver, podName, vpnPodIp, vpnClientIp, apiToken);
+            await createRedisRecord(redisHost, redisPort, redisPass, redisDb, vpnConfigName, vpnClientIp);
 
         } catch(error) {
             console.error(`Cannot start proxy: ${error}`);
