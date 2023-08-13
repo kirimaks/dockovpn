@@ -52,7 +52,7 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
                 {
                     name: 'vpnclient',
                     image: 'skamirik/openvpn-client:latest',
-                    imagePullPolicy: 'Always',
+                    imagePullPolicy: 'IfNotPresent',
                     securityContext: {
                         capabilities: {
                             add: [ 'NET_ADMIN' ],
@@ -87,7 +87,7 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
                 {
                     name: 'tinyproxy',
                     image: 'skamirik/tinyproxy:latest',
-                    imagePullPolicy: 'Always',
+                    imagePullPolicy: 'IfNotPresent',
 
                     ports: [
                         {
