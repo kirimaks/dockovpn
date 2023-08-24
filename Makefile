@@ -14,6 +14,13 @@ build:
 	docker push "${DOCKER_REPO}:${FULL_VERSION}"
 	docker push "${DOCKER_REPO}:latest"
 
+
+push:
+	$(eval TAG := $(shell date -u +%s))
+	docker build -t "${DOCKER_REPO}:${TAG}" .
+	docker push "${DOCKER_REPO}:${TAG}"
+
+
 build-release:
 	@echo "Making manual release version ${FULL_VERSION_RELEASE} of DockOvpn"
 	docker build -t "${DOCKER_REPO}:${FULL_VERSION_RELEASE}" -t ${FULL_VERSION} -t alekslitvinenk/openvpn:latest . --no-cache
