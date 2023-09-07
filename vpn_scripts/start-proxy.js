@@ -49,6 +49,31 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
         },
         spec: {
             containers: [
+				{
+					name: 'healtchcheck',
+					image: 'skamirik/proxy-healtch-check:1692876752',
+					imagePullPolicy: 'IfNotPresent',
+					env: [
+						{
+                            name: 'HOST_TO_CHECK',
+                            value: vpnClientIp,
+                        },
+                        {
+                            name: 'PORT_TO_CHECK',
+                            value: '1080',
+                        },
+						{
+                            name: 'PORT_TO_LISTEN',
+                            value: '8888',
+						}
+					],
+					ports: [
+						{
+							name: 'healtch',
+							containerPort: 8888,
+						}
+					]
+				},
                 {
                     name: 'vpnclient',
                     image: 'skamirik/openvpn-client:latest',
@@ -86,7 +111,7 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
                 },
                 {
                     name: 'tinyproxy',
-                    image: 'skamirik/tinyproxy:latest',
+                    image: 'skamirik/tinyproxy:1692807215',
                     imagePullPolicy: 'IfNotPresent',
 
                     ports: [
