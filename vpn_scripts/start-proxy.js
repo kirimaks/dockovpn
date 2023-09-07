@@ -48,6 +48,23 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
             },
         },
         spec: {
+			affinity: {
+				nodeAffinity: {
+					requiredDuringSchedulingIgnoredDuringExecution: {
+						nodeSelectorTerms: [
+							{
+								matchExpressions: [
+									{
+										key: "provider",
+										operator: "In",
+										values: [ "digital-ocean" ]
+									}
+								]
+							}
+						]
+					}
+				}
+			},
             containers: [
 				{
 					name: 'healtchcheck',
