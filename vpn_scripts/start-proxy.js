@@ -9,6 +9,7 @@ const envTools = require('./env-tools');
 
 const PROXY_DB = 'proxyPool';
 const PROXY_COLLECTION = 'proxy';
+const HEALTH_CONTAINER_TAG = process.env.HEALTH_CONTAINER_TAG || envTools.envError('HEALTH_CONTAINER_TAG not defined');
 
 
 function getMongoConnectionString() {
@@ -68,7 +69,7 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
             containers: [
 				{
 					name: 'healtchcheck',
-					image: 'skamirik/proxy-healtch-check:1692876752',
+					image: `skamirik/proxy-healtch-check:${HEALTH_CONTAINER_TAG}`,
 					imagePullPolicy: 'IfNotPresent',
 					env: [
 						{
