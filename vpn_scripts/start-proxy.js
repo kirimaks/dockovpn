@@ -83,6 +83,10 @@ function getPodData(podName, vpnPodIp, vpnClientIp, vpnConfigName) {
 						{
                             name: 'PORT_TO_LISTEN',
                             value: '8888',
+						},
+						{
+							name: 'HEALTH_SOCKET_TIMEOUT',
+							value: '2000',
 						}
 					],
 					ports: [
