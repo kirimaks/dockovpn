@@ -2,31 +2,31 @@
 
 set -x
 
-export $(grep -v '^#' /tmp/vpn-scripts-env | xargs)
-
-# env
+export $(grep -v '^#' /tmp/vpn-scripts-env | xargs) # Define container vars.
 
 export VPN_CLIENT_IP=$ifconfig_pool_remote_ip
-export VPN_CONFIG_NAME=$common_name
-export POD_IP=$(hostname -i)
+export VPN_CONFIG_NAME=$(echo $common_name | awk '{ print tolower($0) }')
+export VPN_SERVER_IP=$(hostname -i)
 
-# Point to the internal API server hostname
-export APISERVER=https://kubernetes.default.svc
+echo "<< Client connecting: ${common_name}/${ifconfig_pool_remote_ip} >>"
 
-# Path to ServiceAccount token
-export SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount
+NOTIFICATION_RESP=$( \
+	curl -X POST "$PROXY_CONTROLLER_BASE_URI/vpn/client-connect" \
+	-H 'Content-type: application/json' \
+	-d "{ \
+			\"vpn_server_ip\": \"${VPN_SERVER_IP}\", \
+			\"vpn_client_ip\": \"${VPN_CLIENT_IP}\", \
+			\"vpn_config_name\": \"${VPN_CONFIG_NAME}\" \
+		} \
+	" \
+)
 
-# Read this Pod's namespace
-export NAMESPACE=$(cat ${SERVICEACCOUNT}/namespace)
+NOTIFICATION_RESP_CODE=$(echo $NOTIFICATION_RESP | jq ".statusCode")
 
-# Read the ServiceAccount bearer token
-export TOKEN=$(cat ${SERVICEACCOUNT}/token)
+if [[ "${NOTIFICATION_RESP_CODE}" -eq "201" ]]; then
+	exit 0
 
-# Reference the internal certificate authority (CA)
-export CACERT=${SERVICEACCOUNT}/ca.crt
-
-export POD_NAME=$(echo "tinyproxy-${VPN_CONFIG_NAME}-${VPN_CLIENT_IP}-" | awk '{print tolower($0)}')
-
-node /etc/openvpn/scripts/start-proxy.js
-
-echo "<< Client connected: ${common_name}/${ifconfig_pool_remote_ip} >>"
+else
+	echo "Error: proxy controller notification failed"
+	exit 1
+fi

@@ -1,4 +1,4 @@
-FROM node:17.9.1-alpine3.14
+FROM alpine:3.14.1
 
 LABEL maintainer="Alexander Litvinenko <array.shift@yahoo.com>"
 
@@ -21,9 +21,6 @@ COPY scripts .
 COPY config ./config
 COPY VERSION ./config
 COPY vpn_scripts /etc/openvpn/scripts
-
-RUN npm config set prefix /usr && \
-    npm -g add mongodb axios ioredis
 
 RUN apk add --no-cache openvpn easy-rsa bash netcat-openbsd zip dumb-init curl jq && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/bin/easyrsa && \

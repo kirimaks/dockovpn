@@ -11,8 +11,8 @@ all: build
 build:
 	@echo "Making production version ${FULL_VERSION} of DockOvpn"
 	docker build -t "${DOCKER_REPO}:${FULL_VERSION}" -t "${DOCKER_REPO}:latest" . --no-cache
-	docker push "${DOCKER_REPO}:${FULL_VERSION}"
-	docker push "${DOCKER_REPO}:latest"
+	# docker push "${DOCKER_REPO}:${FULL_VERSION}"
+	# docker push "${DOCKER_REPO}:latest"
 
 
 push:
@@ -91,13 +91,12 @@ test-branch:
 	alekslitvinenk/dockovpn-it:1.0.0 test
 
 run:
+	$(eval TAG := $(shell date -u +%s))
+	docker build -t "${DOCKER_REPO}:${TAG}" .
 	docker run --cap-add=NET_ADMIN \
 	-v openvpn_conf:/opt/Dockovpn_data \
 	-p 1194:1194/tcp -p 80:8080/tcp \
 	-e HOST_ADDR=localhost \
-    -e MONGOUSER=${MONGOUSER} \
-    -e MONGOPASS=${MONGOPASS} \
-    -e MONGOHOST=${MONGOHOST} \
-    -e MONGOPORT=${MONGOPORT} \
+	-e PROXY_CONTROLLER_BASE_URI="http://172.16.1.195:3000" \
 	--rm \
-	${DOCKER_REPO}:local
+	${DOCKER_REPO}:${TAG}

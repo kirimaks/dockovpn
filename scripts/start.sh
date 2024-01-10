@@ -1,14 +1,15 @@
 #!/bin/bash
 
+
+if [ -z "$PROXY_CONTROLLER_BASE_URI" ]; then
+	echo "ERROR: PROXY_CONTROLLER_BASE_URI is not defined"
+	exit 1
+fi
+
+
 SHORT=r
 LONG=regenerate
 OPTS=$(getopt -a -n dockovpn --options $SHORT --longoptions $LONG -- "$@")
-
-export NODE_PATH=$(npm -g root)
-
-if [[ $? -ne 0 ]] ; then
-    exit 1
-fi
 
 eval set -- "$OPTS"
 
