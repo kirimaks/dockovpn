@@ -5,7 +5,7 @@ set -x
 export $(grep -v '^#' /tmp/vpn-scripts-env | xargs) # Define container vars.
 
 export VPN_CLIENT_IP=$ifconfig_pool_remote_ip
-export VPN_CONFIG_NAME=$(echo $common_name | awk '{print tolower($0)}')
+export VPN_CONFIG_NAME=$common_name
 export VPN_SERVER_IP=$(hostname -i)
 
 echo "<< Client disconnecting: ${common_name}/${ifconfig_pool_remote_ip} >>"
